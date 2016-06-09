@@ -1,9 +1,11 @@
 var fs = require('fs');
 var express = require('express');
+var bodyParser = require('body-parser');
 var jade = require('jade');
 var couchbase = require('couchbase');
 var _ = require('underscore');
 var ViewQuery = couchbase.ViewQuery;
+var util = require('util');
 
 var ENTRIES_PER_PAGE = 30;
 
@@ -23,7 +25,8 @@ exports.start = function(config)
   });
 
   var app = express();
-  app.use(express.bodyParser());
+  // app.use(express.bodyParser());
+  app.use(bodyParser.urlencoded({ extended: true }));
   app.use(express.static('static'));
   app.set('views', __dirname + '/views');
   app.set('view engine', 'jade');
@@ -45,6 +48,7 @@ exports.start = function(config)
     var q = ViewQuery.from('beer', 'by_name')
         .limit(ENTRIES_PER_PAGE)
         .stale(ViewQuery.Update.BEFORE);
+    console.log("Beers view query : " + util.inspect(q, false, null));
     db.query(q, function(err, values) {
       // 'by_name' view's map function emits beer-name as key and value as
       // null. So values will be a list of
@@ -54,14 +58,12 @@ exports.start = function(config)
       var keys = _.pluck(values, 'id');
 
       db.getMulti( keys, function(err, results) {
-
         // Add the id to the document before sending to template
         var beers = _.map(results, function(v, k) {
           v.value.id = k;
           return v.value;
         });
-
-        res.render('beer/index', {'beers':beers});
+        res.render('beer/index', {'beers':values});
       })
     });
   }
@@ -159,8 +161,7 @@ exports.start = function(config)
   }
   function done_edit_beer(req, res) {
     var doc = normalize_beer_fields(req.body);
-
-    db.get( rc.doc.brewery_id, function(err, result) {
+    db.get(req.params.beer_id, function(err, result) {
       if (result.value === undefined) { // Trying to edit non-existing doc ?
         res.send(404);
       } else {    // Set and redirect.
@@ -189,9 +190,10 @@ exports.start = function(config)
       upc: '',
       brewery_id: ''
     } };
-    res.render('beer/edit', view);
+    res.render('beer/create', view);
   }
   function done_create_beer(req, res) {
+    console.log("req : " + util.inspect(req.body, false, null));
     var doc = normalize_beer_fields(req.body);
     var beer_id = doc.brewery_id.toLowerCase() + '-' +
                   doc.name.replace(' ', '-').toLowerCase();
@@ -258,13 +260,14 @@ exports.start = function(config)
 // utility function to validate form submissions - creating / editing beer
 // documents.
 function normalize_beer_fields(data) {
+  console.log("data : " + util.inspect(data, false, null));
   var doc = {};
   _.each(data, function(value, key) {
     if(key.substr(0,4) == 'beer') {
       doc[key.substr(5)] = value;
     }
   });
-
+  console.log("doc : " + util.inspect(doc, false, null));
   if (!doc['name']) {
     throw new Error('Must have name');
   }

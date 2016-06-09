@@ -14,7 +14,7 @@ block content
     tbody
       for beer in beers
         tr
-          td: a(href="/beers/show/#{beer.id}") #{beer.name}
+          td: a(href="/beers/show/#{beer.id}") #{beer.key}
           td: a(href="/breweries/show/#{beer.brewery_id}") To Brewery
           td
             a(class="btn btn-small btn-warning" href="/beers/edit/#{beer.id}") Edit
