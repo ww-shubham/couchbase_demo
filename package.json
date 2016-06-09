@@ -3,7 +3,14 @@
   "description": "Beers and Breweries application using node.",
   "version": "0.0.2",
   "private": true,
-  "dependencies": {},
+  "dependencies": {
+  	"underscore": "~1.8.3",
+	"express": "~4.13.4",
+	"jade": "~1.11.0",
+    "couchbase": "~2.1.6",
+    "util": "~0.10.3",
+    "body-parser": "~1.15.1",
+  },
   "devDependencies": {
     "nodemon": "^1.9.2"
   }
